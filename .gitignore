@@ -1,0 +1,15 @@
+/backend/.env
+/backend/.env.*
+!/backend/.env.example
+/backend/vendor/
+/backend/storage/*.key
+/backend/bootstrap/cache/*.php
+/frontend/node_modules/
+/frontend/.angular/
+/frontend/dist/
+*.log
+.DS_Store
+Thumbs.db
+composer.phar
+.vscode/
+.idea/
