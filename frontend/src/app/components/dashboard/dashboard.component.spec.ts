@@ -21,10 +21,10 @@ describe('DashboardComponent', () => {
 
   it('should toggle sidebar', () => {
     expect(component.isSidebarOpen()).toBeFalsy();
-    
+
     component.toggleSidebar();
     expect(component.isSidebarOpen()).toBeTruthy();
-    
+
     component.toggleSidebar();
     expect(component.isSidebarOpen()).toBeFalsy();
   });

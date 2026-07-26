@@ -68,7 +68,7 @@ export class AuthService {
    */
   login(credentials: LoginCredentials): Observable<LoginResponse> {
     return this.getCsrfCookie().pipe(
-      switchMap(() => 
+      switchMap(() =>
         this.http.post<LoginResponse>(`/api/login`, credentials, {
           withCredentials: true
         })
@@ -81,7 +81,7 @@ export class AuthService {
    */
   register(credentials: RegisterCredentials): Observable<RegisterResponse> {
     return this.getCsrfCookie().pipe(
-      switchMap(() => 
+      switchMap(() =>
         this.http.post<RegisterResponse>(`/api/register`, credentials, {
           withCredentials: true
         })

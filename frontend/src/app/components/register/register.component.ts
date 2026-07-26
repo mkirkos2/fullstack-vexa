@@ -16,7 +16,7 @@ interface ValidationErrors {
 })
 export class RegisterComponent implements OnInit {
   registerForm!: FormGroup;
-  
+
   isLoading = signal(false);
   errorMessage = signal('');
 
@@ -41,7 +41,7 @@ export class RegisterComponent implements OnInit {
   passwordMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
     const password = control.get('password');
     const confirmPassword = control.get('password_confirmation');
-    
+
     if (password && confirmPassword && password.value !== confirmPassword.value) {
       confirmPassword.setErrors({ passwordMismatch: true });
       return { passwordMismatch: true };
@@ -50,7 +50,7 @@ export class RegisterComponent implements OnInit {
       const { passwordMismatch, ...otherErrors } = confirmPassword.errors;
       confirmPassword.setErrors(Object.keys(otherErrors).length > 0 ? otherErrors : null);
     }
-    
+
     return null;
   };
 
@@ -63,7 +63,7 @@ export class RegisterComponent implements OnInit {
     this.errorMessage.set('');
 
     const credentials: RegisterCredentials = this.registerForm.getRawValue();
-    
+
     this.authService.register(credentials).subscribe({
       next: () => {
         this.isLoading.set(false);

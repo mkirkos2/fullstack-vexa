@@ -12,7 +12,7 @@ import { AuthService, LoginCredentials } from '../../services/auth.service';
 })
 export class LoginComponent implements OnInit {
   loginForm!: FormGroup;
-  
+
   isLoading = signal(false);
   errorMessage = signal('');
 
@@ -38,7 +38,7 @@ export class LoginComponent implements OnInit {
     this.errorMessage.set('');
 
     const credentials: LoginCredentials = this.loginForm.getRawValue();
-    
+
     this.authService.login(credentials).subscribe({
       next: () => {
         this.isLoading.set(false);
