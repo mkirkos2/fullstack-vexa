@@ -53,7 +53,7 @@ class AuthController extends Controller
         }
 
         // Start a new session for API login
-        Session::regenerate();
+        $request->session()->regenerate();
 
         return response()->json([
             'data' => [
@@ -71,34 +71,14 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        // Start a session if not already started
-        if (!$request->hasSession()) {
-            $request->setLaravelSession(app('session.store'));
-        }
-
-        // Get the authenticated user before logging out
-        $user = Auth::guard('web')->user();
-
         Auth::guard('web')->logout();
 
-        // Invalidate the session
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // Clear the session cookie
-        $cookie = cookie('XSRF-TOKEN', '', -1);
-        $sessionCookie = cookie('laravel_session', '', -1);
-
-        // Manually clear the user from the session
-        $request->session()->forget('user');
-        
-        // Forget the user from the auth guard
-        Auth::shouldUse('web');
-        Auth::guard('web')->logout();
-
         return response()->json([
             'message' => 'User logged out successfully',
-        ])->withCookie($cookie)->withCookie($sessionCookie);
+        ]);
     }
 
     /**
