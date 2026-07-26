@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConversationController;
+use App\Http\Controllers\Api\MessageController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -13,4 +14,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('conversations', ConversationController::class)
         ->only(['index', 'store', 'show', 'update', 'destroy']);
+
+    // Nested message routes
+    Route::get('/conversations/{conversation}/messages', [MessageController::class, 'index'])
+        ->name('conversations.messages.index');
+    Route::post('/conversations/{conversation}/messages', [MessageController::class, 'store'])
+        ->name('conversations.messages.store');
 });
