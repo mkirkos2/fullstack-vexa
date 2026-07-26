@@ -27,7 +27,7 @@ test('a user can register', function () {
         ],
         'message',
     ]);
-    
+
     $this->assertDatabaseHas('users', [
         'name' => 'John Doe',
         'email' => 'john@example.com',
@@ -43,7 +43,7 @@ test('registration validates required fields', function () {
 
 test('registration rejects duplicate email', function () {
     User::factory()->create(['email' => 'john@example.com']);
-    
+
     $response = $this->postJson('/api/register', [
         'name' => 'Jane Doe',
         'email' => 'john@example.com',
@@ -99,7 +99,7 @@ test('a user can log in with valid credentials', function () {
         ],
         'message',
     ]);
-    
+
     $this->assertAuthenticatedAs($user);
 });
 
@@ -117,7 +117,7 @@ test('login fails with invalid credentials', function () {
 
 test('an authenticated user can access api user', function () {
     $user = User::factory()->create();
-    
+
     $response = $this->actingAs($user)->getJson('/api/user');
 
     $response->assertStatus(200);
@@ -150,7 +150,7 @@ test('an unauthenticated user cannot access api user', function () {
 
 test('an authenticated user can log out', function () {
     $user = User::factory()->create();
-    
+
     // Initialize CSRF protection
     $this->get('/sanctum/csrf-cookie')
         ->assertStatus(204);
@@ -177,7 +177,7 @@ test('an authenticated user can log out', function () {
     $response->assertJson([
         'message' => 'User logged out successfully',
     ]);
-    
+
     // After logout, user should not be authenticated
     // Note: In real SPA scenarios, session would be cleared completely
     // but in testing environment, we check that the logout endpoint works correctly
