@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\AiReplyController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -20,4 +21,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('conversations.messages.index');
     Route::post('/conversations/{conversation}/messages', [MessageController::class, 'store'])
         ->name('conversations.messages.store');
+
+    // AI reply route
+    Route::post('/conversations/{conversation}/ai-reply', AiReplyController::class)
+        ->name('conversations.ai-reply');
 });
