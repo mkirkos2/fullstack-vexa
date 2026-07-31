@@ -115,7 +115,7 @@ test('foreign-owner requests do not create messages', function () {
 test('provider receives messages in chronological order', function () {
     $user = User::factory()->create();
     $conversation = Conversation::factory()->for($user)->create();
-    
+
     // Create messages with specific timestamps to ensure order
     $message1 = Message::factory()->for($conversation)->user()->create([
         'content' => 'First message',
@@ -190,12 +190,12 @@ test('provider receives only role and content', function () {
 test('provider receives user, assistant, and system roles when persisted', function () {
     $user = User::factory()->create();
     $conversation = Conversation::factory()->for($user)->create();
-    
+
     // Create messages with different roles
     Message::factory()->for($conversation)->user()->create(['content' => 'User message']);
     Message::factory()->for($conversation)->assistant()->create(['content' => 'Assistant message']);
     // Note: We don't typically create system messages through the API, but we can test that they would be included
-    
+
     // Manually create a system message for testing
     Message::factory()->for($conversation)->create([
         'role' => 'system',
@@ -322,7 +322,7 @@ test('exactly one assistant message is created', function () {
     $user = User::factory()->create();
     $conversation = Conversation::factory()->for($user)->create();
     Message::factory()->for($conversation)->user()->create(['content' => 'Hello AI']);
-    
+
     $initialAssistantMessageCount = Message::where('role', 'assistant')->count();
 
     $mockAiProvider = mock(AiProvider::class);
@@ -352,7 +352,7 @@ test('assistant content matches AiResponse content', function () {
     Message::factory()->for($conversation)->user()->create(['content' => 'Hello AI']);
 
     $responseContent = 'Hello! This is a test response.';
-    
+
     $mockAiProvider = mock(AiProvider::class);
     $mockAiProvider->shouldReceive('generateReply')
         ->once()
@@ -415,7 +415,7 @@ test('no user message is created by this endpoint', function () {
     $user = User::factory()->create();
     $conversation = Conversation::factory()->for($user)->create();
     Message::factory()->for($conversation)->user()->create(['content' => 'Hello AI']);
-    
+
     $initialUserMessageCount = Message::where('role', 'user')->count();
 
     $mockAiProvider = mock(AiProvider::class);
@@ -472,7 +472,7 @@ test('unrelated conversations are not modified', function () {
     $conversation1 = Conversation::factory()->for($user)->create(['updated_at' => now()->subHour()]);
     $conversation2 = Conversation::factory()->for($user)->create(['updated_at' => now()->subHour()]);
     Message::factory()->for($conversation1)->user()->create(['content' => 'Hello AI']);
-    
+
     $originalUpdatedAt1 = $conversation1->updated_at->timestamp;
     $originalUpdatedAt2 = $conversation2->updated_at->timestamp;
 
@@ -524,7 +524,7 @@ test('response exposes only MessageResource fields', function () {
 
     $response->assertStatus(201);
     $responseData = $response->json()['data'];
-    
+
     // Check that only expected fields are present
     expect($responseData)->toHaveKeys(['id', 'role', 'content', 'created_at', 'updated_at']);
     expect($responseData)->not->toHaveKeys(['conversation_id', 'user_id', 'provider', 'model', 'prompt_tokens', 'completion_tokens', 'total_tokens']);
@@ -581,7 +581,7 @@ test('response does not expose token usage or provider metadata', function () {
 
     $response->assertStatus(201);
     $responseData = $response->json()['data'];
-    
+
     // Check that token usage and provider metadata are not exposed
     expect($responseData)->not->toHaveKeys(['provider', 'model', 'prompt_tokens', 'completion_tokens', 'total_tokens', 'finish_reason']);
 });
@@ -603,7 +603,7 @@ test('if the conversation changes between history loading and persistence, retur
             Message::factory()->for($conversation)->assistant()->create([
                 'content' => 'Intervening message',
             ]);
-            
+
             return new AiResponse(
                 content: 'This response is now stale',
                 provider: 'test',
@@ -629,7 +629,7 @@ test('a stale AI response is not persisted', function () {
     $user = User::factory()->create();
     $conversation = Conversation::factory()->for($user)->create();
     $initialMessage = Message::factory()->for($conversation)->user()->create(['content' => 'Hello AI']);
-    
+
     $initialMessageCount = Message::count();
 
     $mockAiProvider = mock(AiProvider::class);
@@ -640,7 +640,7 @@ test('a stale AI response is not persisted', function () {
             Message::factory()->for($conversation)->assistant()->create([
                 'content' => 'Intervening message',
             ]);
-            
+
             return new AiResponse(
                 content: 'This response is now stale',
                 provider: 'test',
@@ -664,7 +664,7 @@ test('existing messages remain intact after a stale-response conflict', function
     $user = User::factory()->create();
     $conversation = Conversation::factory()->for($user)->create();
     $initialMessage = Message::factory()->for($conversation)->user()->create(['content' => 'Hello AI']);
-    
+
     $initialMessages = Message::pluck('id')->toArray();
 
     $mockAiProvider = mock(AiProvider::class);
@@ -675,7 +675,7 @@ test('existing messages remain intact after a stale-response conflict', function
             Message::factory()->for($conversation)->assistant()->create([
                 'content' => 'Intervening message',
             ]);
-            
+
             return new AiResponse(
                 content: 'This response is now stale',
                 provider: 'test',
@@ -692,11 +692,11 @@ test('existing messages remain intact after a stale-response conflict', function
     $response = $this->actingAs($user, 'web')->postJson("/api/conversations/{$conversation->id}/ai-reply");
 
     $response->assertStatus(409);
-    
+
     // Verify that the initial messages are still there
     $currentMessages = Message::pluck('id')->toArray();
     expect($currentMessages)->toContain($initialMessage->id);
-    
+
     // Verify that only the intervening message was added
     expect(count($currentMessages))->toBe(count($initialMessages) + 1);
 });
@@ -827,7 +827,7 @@ test('provider failures do not create assistant messages', function () {
     $user = User::factory()->create();
     $conversation = Conversation::factory()->for($user)->create();
     Message::factory()->for($conversation)->user()->create(['content' => 'Hello AI']);
-    
+
     $initialAssistantMessageCount = Message::where('role', 'assistant')->count();
 
     $mockAiProvider = mock(AiProvider::class);
@@ -847,7 +847,7 @@ test('provider failures do not modify existing messages', function () {
     $user = User::factory()->create();
     $conversation = Conversation::factory()->for($user)->create();
     $initialMessage = Message::factory()->for($conversation)->user()->create(['content' => 'Hello AI']);
-    
+
     $initialMessageCount = Message::count();
     $initialMessageContent = $initialMessage->content;
 
@@ -911,7 +911,7 @@ test('error responses do not expose provider response content', function () {
 test('no test makes a real external request', function () {
     // This test ensures that all our tests are properly mocking the AiProvider
     // and not making real external requests
-    
+
     // We can verify this by ensuring our mocks are set up correctly in other tests
     $this->assertTrue(true); // Placeholder - the actual verification is in the other tests
 });
