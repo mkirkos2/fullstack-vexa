@@ -1,12 +1,14 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService, User } from '../../services/auth.service';
 import { Conversation, ConversationService } from '../../services/conversation.service';
+import { Message, MessageService } from '../../services/message.service';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [],
+  imports: [FormsModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
@@ -25,9 +27,17 @@ export class DashboardComponent implements OnInit {
   conversationsError = signal(false);
   creatingConversation = signal(false);
 
+  // Message state
+  messages = signal<Message[]>([]);
+  messagesLoading = signal(false);
+  messagesError = signal(false);
+  sendingMessage = signal(false);
+  messageContent = signal('');
+
   constructor(
     private authService: AuthService,
     private conversationService: ConversationService,
+    private messageService: MessageService,
     private router: Router
   ) {}
 
@@ -86,8 +96,140 @@ export class DashboardComponent implements OnInit {
 
   selectConversation(conversation: Conversation): void {
     this.selectedConversation.set(conversation);
+    // Clear messages from previously selected conversation
+    this.messages.set([]);
+    // Clear previous message errors
+    this.messagesError.set(false);
+    // Load messages for the selected conversation
+    this.loadMessages();
     // Close mobile sidebar after selection
     this.closeSidebar();
+  }
+
+  loadMessages(): void {
+    const conversation = this.selectedConversation();
+    if (!conversation) {
+      return;
+    }
+
+    // Prevent duplicate loading requests
+    if (this.messagesLoading()) {
+      return;
+    }
+
+    this.messagesLoading.set(true);
+    this.messagesError.set(false);
+
+    this.messageService.getMessages(conversation.id).subscribe({
+      next: (response) => {
+        // Ensure we're still on the same conversation
+        if (this.selectedConversation()?.id === conversation.id) {
+          this.messages.set(response.data);
+          this.messagesLoading.set(false);
+        }
+      },
+      error: (error) => {
+        // Ensure we're still on the same conversation
+        if (this.selectedConversation()?.id === conversation.id) {
+          this.messagesLoading.set(false);
+          if (error.status === 401) {
+            // Unauthorized - redirect to login
+            this.router.navigate(['/login'], { replaceUrl: true });
+          } else if (error.status === 404) {
+            // Conversation not found - remove from list and clear selection
+            this.removeConversation(conversation.id);
+            this.selectedConversation.set(null);
+            this.messages.set([]);
+          } else {
+            // Other error
+            this.messagesError.set(true);
+          }
+        }
+      }
+    });
+  }
+
+  removeConversation(conversationId: number): void {
+    this.conversations.set(this.conversations().filter(conv => conv.id !== conversationId));
+  }
+
+  handleKeyDown(event: Event): void {
+    // Type guard to ensure we have a KeyboardEvent
+    if (!(event instanceof KeyboardEvent)) {
+      return;
+    }
+
+    // Allow Shift+Enter to create a new line
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.sendMessage();
+    }
+  }
+
+  sendMessage(): void {
+    // Prevent submission if no conversation is selected or already sending
+    if (!this.selectedConversation() || this.sendingMessage()) {
+      return;
+    }
+
+    const content = this.messageContent().trim();
+    // Prevent submission if content is empty or whitespace-only
+    if (!content) {
+      return;
+    }
+
+    // Prevent submission if content is too long
+    if (content.length > 50000) {
+      return;
+    }
+
+    const conversationId = this.selectedConversation()!.id;
+    this.sendingMessage.set(true);
+
+    this.messageService.createMessage(conversationId, content).subscribe({
+      next: (response) => {
+        const newMessage = response.data;
+        // Append the new message
+        this.messages.set([...this.messages(), newMessage]);
+        // Clear the message content
+        this.messageContent.set('');
+        // Move the selected conversation to the top of the sidebar
+        this.moveConversationToTop(conversationId);
+        // Reset sending state
+        this.sendingMessage.set(false);
+      },
+      error: (error) => {
+        this.sendingMessage.set(false);
+        if (error.status === 401) {
+          // Unauthorized - redirect to login
+          this.router.navigate(['/login'], { replaceUrl: true });
+        } else if (error.status === 404) {
+          // Conversation not found - remove from list and clear selection
+          this.removeConversation(conversationId);
+          this.selectedConversation.set(null);
+          this.messages.set([]);
+        } else {
+          // Other error - show message to user
+          console.error('Failed to send message:', error);
+        }
+      }
+    });
+  }
+
+  moveConversationToTop(conversationId: number): void {
+    const conversations = this.conversations();
+    const conversationIndex = conversations.findIndex(conv => conv.id === conversationId);
+    
+    if (conversationIndex !== -1) {
+      const conversation = conversations[conversationIndex];
+      // Create a new array with the conversation moved to the top
+      const updatedConversations = [
+        conversation,
+        ...conversations.slice(0, conversationIndex),
+        ...conversations.slice(conversationIndex + 1)
+      ];
+      this.conversations.set(updatedConversations);
+    }
   }
 
   createNewConversation(): void {
