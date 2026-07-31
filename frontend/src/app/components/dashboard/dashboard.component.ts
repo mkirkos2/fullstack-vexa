@@ -219,7 +219,7 @@ export class DashboardComponent implements OnInit {
   moveConversationToTop(conversationId: number): void {
     const conversations = this.conversations();
     const conversationIndex = conversations.findIndex(conv => conv.id === conversationId);
-    
+
     if (conversationIndex !== -1) {
       const conversation = conversations[conversationIndex];
       // Create a new array with the conversation moved to the top
