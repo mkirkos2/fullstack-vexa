@@ -1,58 +1,142 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Vexa Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+The backend of the Vexa application is built with Laravel 13, providing a RESTful API for the frontend to interact with. It handles user authentication, conversation management, message storage, and AI integration.
 
-## About Laravel
+## Tech Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Framework**: Laravel 13
+- **Language**: PHP 8.3
+- **Database**: MySQL for application persistence, SQLite in-memory for automated tests
+- **Authentication**: Laravel Sanctum
+- **AI Integration**: Groq API
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Key Components
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Authentication
 
-## Learning Laravel
+The authentication system uses Laravel Sanctum for API token authentication. Users can register and login through the `/api/register` and `/api/login` endpoints respectively.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Conversation Management
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Conversations are stored in the database with a relationship to users. Each conversation can have multiple messages associated with it.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### Message System
 
-## Agentic Development
+Messages are stored with their role (user or assistant) and content. They maintain the context of the conversation for AI interactions.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### AI Integration
 
-```bash
-composer require laravel/boost --dev
+The application integrates with the Groq API to provide AI-powered responses. The `GroqAiProvider` class handles communication with the API, including error handling for various scenarios like rate limiting, authentication failures, and connection issues.
 
-php artisan boost:install
+## Database Structure
+
+### Users Table
+
+- `id` - Primary key
+- `name` - User's name
+- `email` - Unique email address
+- `password` - Hashed password
+- `timestamps` - Created/updated timestamps
+
+### Conversations Table
+
+- `id` - Primary key
+- `user_id` - Foreign key to users table
+- `title` - Optional conversation title
+- `timestamps` - Created/updated timestamps
+
+### Messages Table
+
+- `id` - Primary key
+- `conversation_id` - Foreign key to conversations table
+- `role` - Message role (user/assistant)
+- `content` - Message content
+- `timestamps` - Created/updated timestamps
+
+## API Endpoints
+
+| Method | Endpoint                        | Middleware | Description                    |
+|--------|---------------------------------|------------|--------------------------------|
+| POST   | `/api/register`                 | guest      | User registration              |
+| POST   | `/api/login`                    | guest      | User login                     |
+| POST   | `/api/logout`                   | auth:sanctum | User logout                   |
+| GET    | `/api/user`                     | auth:sanctum | Get authenticated user        |
+| GET    | `/api/conversations`            | auth:sanctum | List user's conversations     |
+| POST   | `/api/conversations`            | auth:sanctum | Create new conversation       |
+| GET    | `/api/conversations/{id}`       | auth:sanctum | Get conversation details      |
+| PUT    | `/api/conversations/{id}`       | auth:sanctum | Update conversation           |
+| DELETE | `/api/conversations/{id}`       | auth:sanctum | Delete conversation           |
+| GET    | `/api/conversations/{id}/messages` | auth:sanctum | List conversation messages  |
+| POST   | `/api/conversations/{id}/messages` | auth:sanctum | Create new message          |
+| POST   | `/api/conversations/{id}/ai-reply` | auth:sanctum | Generate AI response         |
+
+## Configuration
+
+The backend requires several environment variables to be set in the `.env` file:
+
+```env
+APP_NAME=Vexa
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=vexa
+DB_USERNAME=root
+DB_PASSWORD=
+
+AI_PROVIDER=groq
+GROQ_API_KEY=your_groq_api_key_here
+GROQ_MODEL=llama-3.1-8b-instant
+GROQ_BASE_URL=https://api.groq.com/openai/v1
+
+AI_TIMEOUT=30
+AI_CONNECT_TIMEOUT=10
+AI_MAX_TOKENS=1024
+AI_TEMPERATURE=0.7
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Development
 
-## Contributing
+To run the backend in development mode:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+php artisan serve
+```
 
-## Code of Conduct
+This will start the development server at http://localhost:8000.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Testing
 
-## Security Vulnerabilities
+The application uses Pest for testing. To run tests:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan test
+```
 
-## License
+## Folder Structure
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```
+app/
+├── Http/
+│   ├── Controllers/
+│   │   └── Api/
+│   │       ├── AuthController.php
+│   │       ├── ConversationController.php
+│   │       ├── MessageController.php
+│   │       └── AiReplyController.php
+│   └── Resources/
+├── Models/
+│   ├── User.php
+│   ├── Conversation.php
+│   └── Message.php
+├── Services/
+│   └── AI/
+│       ├── GroqAiProvider.php
+│       └── AiService.php
+└── Exceptions/
+    └── AI/
+```

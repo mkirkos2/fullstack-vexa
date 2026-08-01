@@ -1,59 +1,147 @@
-# Frontend
+# Vexa Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.0.8.
+The frontend of the Vexa application is built with Angular 22, providing a responsive and intuitive user interface for interacting with the chat functionality.
 
-## Development server
+## Tech Stack
 
-To start a local development server, run:
+- **Framework**: Angular 22
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Build Tool**: Angular CLI
+- **Testing**: Jasmine & Karma
+
+## Key Features
+
+### User Authentication
+
+- Registration and login forms
+- Token-based authentication
+- Protected routes
+- User session management
+
+### Conversation Interface
+
+- Sidebar for conversation navigation
+- Real-time messaging display
+- Message input with send functionality
+- AI response loading states
+
+### Responsive Design
+
+- Mobile-friendly layout
+- Collapsible sidebar for smaller screens
+- Adaptive message bubbles
+
+## Components
+
+### Authentication Components
+
+- `login` - User login form
+- `register` - User registration form
+
+### Main Components
+
+- `dashboard` - Main application interface
+  - Header with logout functionality
+  - Sidebar for conversation management
+  - Main chat area with messages
+  - Message input area
+
+## Services
+
+### Auth Service
+
+Handles user authentication including registration, login, logout, and current user retrieval.
+
+### Conversation Service
+
+Manages conversation CRUD operations:
+- Get all user conversations
+- Create new conversation
+- Update conversation
+- Delete conversation
+
+### Message Service
+
+Handles message operations and AI integration:
+- Get messages for a conversation
+- Create new message
+- Generate AI reply
+
+## State Management
+
+The application uses Angular signals for state management:
+- User authentication state
+- Conversation loading states
+- Message loading states
+- UI interaction states (sidebar open/close, loading indicators)
+
+## Styling
+
+The application uses Tailwind CSS for styling with a clean, modern design:
+- Dark mode friendly color scheme
+- Responsive breakpoints
+- Consistent spacing and typography
+- Interactive element states (hover, focus)
+
+## Development
+
+To run the frontend in development mode:
 
 ```bash
-ng serve
+npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
+This will start the development server at http://localhost:4200.
 
 ## Building
 
-To build the project run:
+To build the application for production:
 
 ```bash
-ng build
+npm run build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## Testing
 
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+To run tests:
 
 ```bash
-ng test
+npm test
 ```
 
-## Running end-to-end tests
+## Folder Structure
 
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
+```
+src/
+├── app/
+│   ├── components/
+│   │   ├── dashboard/
+│   │   ├── login/
+│   │   └── register/
+│   ├── services/
+│   │   ├── auth.service.ts
+│   │   ├── conversation.service.ts
+│   │   └── message.service.ts
+│   ├── app.config.ts
+│   ├── app.routes.ts
+│   └── app.ts
+├── assets/
+└── styles/
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## API Integration
 
-## Additional Resources
+The frontend communicates with the backend API through Angular services that use HttpClient. During development, API requests are proxied to the backend server at `http://localhost:8000` using the proxy configuration.
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## Environment Configuration
+
+The application uses Angular's environment files to manage different configurations:
+
+```typescript
+// environments/environment.ts
+export const environment = {
+  production: false,
+  apiUrl: 'http://localhost:8000/api'
+};
+```
