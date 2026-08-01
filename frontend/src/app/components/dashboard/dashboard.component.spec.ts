@@ -57,6 +57,15 @@ describe('DashboardComponent', () => {
           created_at: '2023-01-01',
           updated_at: '2023-01-01'
         }
+      })),
+      generateAiReply: vi.fn().mockReturnValue(of({
+        data: {
+          id: 2,
+          role: 'assistant',
+          content: 'Hello! How can I help you today?',
+          created_at: '2023-01-01',
+          updated_at: '2023-01-01'
+        }
       }))
     };
 
@@ -746,6 +755,7 @@ describe('DashboardComponent', () => {
   it('should append returned message on successful send', () => {
     // Reset spy
     mockMessageService.createMessage.mockClear();
+    mockMessageService.generateAiReply.mockClear();
 
     const mockConversation: Conversation = {
       id: 1,
@@ -756,7 +766,7 @@ describe('DashboardComponent', () => {
 
     const mockResponse = {
       data: {
-        id: 2,
+        id: 1,
         role: 'user',
         content: 'Test message',
         created_at: '2023-01-01',
@@ -765,6 +775,15 @@ describe('DashboardComponent', () => {
     };
 
     mockMessageService.createMessage.mockReturnValue(of(mockResponse));
+    mockMessageService.generateAiReply.mockReturnValue(of({
+      data: {
+        id: 2,
+        role: 'assistant',
+        content: 'AI response',
+        created_at: '2023-01-01',
+        updated_at: '2023-01-01'
+      }
+    }));
 
     component.selectedConversation.set(mockConversation);
     component.messageContent.set('Test message');
@@ -783,8 +802,9 @@ describe('DashboardComponent', () => {
 
     component.sendMessage();
 
-    expect(component.messages().length).toBe(2);
+    expect(component.messages().length).toBe(3); // Previous + User + AI
     expect(component.messages()[1].content).toBe('Test message');
+    expect(component.messages()[2].content).toBe('AI response');
   });
 
   it('should clear composer on successful send', () => {

@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-// Interfaces for messages
 export interface Message {
   id: number;
   role: 'user' | 'assistant' | 'system';
@@ -25,20 +24,20 @@ export interface MessageResponse {
 export class MessageService {
   constructor(private http: HttpClient) {}
 
-  /**
-   * Get all messages for a conversation
-   */
   getMessages(conversationId: number): Observable<MessageCollectionResponse> {
     return this.http.get<MessageCollectionResponse>(`/api/conversations/${conversationId}/messages`, {
       withCredentials: true
     });
   }
 
-  /**
-   * Create a new message in a conversation
-   */
   createMessage(conversationId: number, content: string): Observable<MessageResponse> {
     return this.http.post<MessageResponse>(`/api/conversations/${conversationId}/messages`, { content }, {
+      withCredentials: true
+    });
+  }
+
+  generateAiReply(conversationId: number): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`/api/conversations/${conversationId}/ai-reply`, {}, {
       withCredentials: true
     });
   }

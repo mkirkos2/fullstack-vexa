@@ -83,4 +83,29 @@ describe('MessageService', () => {
     expect(req.request.body).toEqual({ content });
     req.flush(mockResponse);
   });
+
+  it('should generate an AI reply for a conversation', () => {
+    const conversationId = 1;
+    const mockResponse: MessageResponse = {
+      data: {
+        id: 2,
+        role: 'assistant',
+        content: 'Hello! How can I help you today?',
+        created_at: '2023-01-01',
+        updated_at: '2023-01-01'
+      }
+    };
+
+    service.generateAiReply(conversationId).subscribe(response => {
+      expect(response).toEqual(mockResponse);
+      expect(response.data.role).toBe('assistant');
+      expect(response.data.content).toBe('Hello! How can I help you today?');
+    });
+
+    const req = httpMock.expectOne(`/api/conversations/${conversationId}/ai-reply`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.withCredentials).toBe(true);
+    expect(req.request.body).toEqual({});
+    req.flush(mockResponse);
+  });
 });

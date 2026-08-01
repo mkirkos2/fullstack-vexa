@@ -34,6 +34,10 @@ export class DashboardComponent implements OnInit {
   sendingMessage = signal(false);
   messageContent = signal('');
 
+  // AI reply state
+  aiReplyLoading = signal(false);
+  aiReplyError = signal('');
+
   constructor(
     private authService: AuthService,
     private conversationService: ConversationService,
@@ -54,16 +58,13 @@ export class DashboardComponent implements OnInit {
       next: (response) => {
         this.currentUser.set(response.data.user);
         this.isLoading.set(false);
-        // Load conversations after user is loaded
         this.loadConversations();
       },
       error: (error) => {
         this.isLoading.set(false);
         if (error.status === 401) {
-          // Unauthorized - redirect to login
           this.router.navigate(['/login']);
         } else {
-          // Other error
           this.isError.set(true);
           this.errorMessage.set('Failed to load user data. Please try again.');
         }
@@ -72,7 +73,6 @@ export class DashboardComponent implements OnInit {
   }
 
   loadConversations(): void {
-    // Prevent duplicate loading requests
     if (this.conversationsLoading()) {
       return;
     }
@@ -88,21 +88,16 @@ export class DashboardComponent implements OnInit {
       error: (error) => {
         this.conversationsLoading.set(false);
         this.conversationsError.set(true);
-        // Don't redirect to login for conversation loading errors
-        console.error('Failed to load conversations:', error);
       }
     });
   }
 
   selectConversation(conversation: Conversation): void {
     this.selectedConversation.set(conversation);
-    // Clear messages from previously selected conversation
     this.messages.set([]);
-    // Clear previous message errors
     this.messagesError.set(false);
-    // Load messages for the selected conversation
+    this.aiReplyError.set('');
     this.loadMessages();
-    // Close mobile sidebar after selection
     this.closeSidebar();
   }
 
@@ -112,7 +107,6 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    // Prevent duplicate loading requests
     if (this.messagesLoading()) {
       return;
     }
@@ -122,26 +116,21 @@ export class DashboardComponent implements OnInit {
 
     this.messageService.getMessages(conversation.id).subscribe({
       next: (response) => {
-        // Ensure we're still on the same conversation
         if (this.selectedConversation()?.id === conversation.id) {
           this.messages.set(response.data);
           this.messagesLoading.set(false);
         }
       },
       error: (error) => {
-        // Ensure we're still on the same conversation
         if (this.selectedConversation()?.id === conversation.id) {
           this.messagesLoading.set(false);
           if (error.status === 401) {
-            // Unauthorized - redirect to login
             this.router.navigate(['/login'], { replaceUrl: true });
           } else if (error.status === 404) {
-            // Conversation not found - remove from list and clear selection
             this.removeConversation(conversation.id);
             this.selectedConversation.set(null);
             this.messages.set([]);
           } else {
-            // Other error
             this.messagesError.set(true);
           }
         }
@@ -154,12 +143,10 @@ export class DashboardComponent implements OnInit {
   }
 
   handleKeyDown(event: Event): void {
-    // Type guard to ensure we have a KeyboardEvent
     if (!(event instanceof KeyboardEvent)) {
       return;
     }
 
-    // Allow Shift+Enter to create a new line
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       this.sendMessage();
@@ -167,50 +154,88 @@ export class DashboardComponent implements OnInit {
   }
 
   sendMessage(): void {
-    // Prevent submission if no conversation is selected or already sending
-    if (!this.selectedConversation() || this.sendingMessage()) {
+    if (!this.selectedConversation() || this.sendingMessage() || this.aiReplyLoading()) {
       return;
     }
 
     const content = this.messageContent().trim();
-    // Prevent submission if content is empty or whitespace-only
     if (!content) {
       return;
     }
 
-    // Prevent submission if content is too long
     if (content.length > 50000) {
       return;
     }
 
     const conversationId = this.selectedConversation()!.id;
     this.sendingMessage.set(true);
+    this.aiReplyError.set('');
 
     this.messageService.createMessage(conversationId, content).subscribe({
       next: (response) => {
         const newMessage = response.data;
-        // Append the new message
         this.messages.set([...this.messages(), newMessage]);
-        // Clear the message content
         this.messageContent.set('');
-        // Move the selected conversation to the top of the sidebar
         this.moveConversationToTop(conversationId);
-        // Reset sending state
         this.sendingMessage.set(false);
+
+        this.generateAiReply(conversationId);
       },
       error: (error) => {
         this.sendingMessage.set(false);
         if (error.status === 401) {
-          // Unauthorized - redirect to login
           this.router.navigate(['/login'], { replaceUrl: true });
         } else if (error.status === 404) {
-          // Conversation not found - remove from list and clear selection
           this.removeConversation(conversationId);
           this.selectedConversation.set(null);
           this.messages.set([]);
-        } else {
-          // Other error - show message to user
-          console.error('Failed to send message:', error);
+        }
+      }
+    });
+  }
+
+  generateAiReply(conversationId: number): void {
+    if (!this.selectedConversation() || this.aiReplyLoading()) {
+      return;
+    }
+
+    if (this.selectedConversation()?.id !== conversationId) {
+      return;
+    }
+
+    this.aiReplyLoading.set(true);
+    this.aiReplyError.set('');
+
+    this.messageService.generateAiReply(conversationId).subscribe({
+      next: (response) => {
+        if (this.selectedConversation()?.id === conversationId) {
+          const aiMessage = response.data;
+          this.messages.set([...this.messages(), aiMessage]);
+          this.aiReplyLoading.set(false);
+        }
+      },
+      error: (error) => {
+        if (this.selectedConversation()?.id === conversationId) {
+          this.aiReplyLoading.set(false);
+          if (error.status === 401) {
+            this.router.navigate(['/login'], { replaceUrl: true });
+          } else if (error.status === 404) {
+            this.removeConversation(conversationId);
+            this.selectedConversation.set(null);
+            this.messages.set([]);
+          } else if (error.status === 409) {
+            this.aiReplyError.set('The conversation changed while Vexa was replying. Please try again.');
+          } else if (error.status === 422) {
+            this.aiReplyError.set(error.error?.message || 'Vexa cannot reply to this conversation yet.');
+          } else if (error.status === 429) {
+            this.aiReplyError.set('Vexa is receiving too many requests. Please try again shortly.');
+          } else if (error.status === 502) {
+            this.aiReplyError.set('Vexa could not generate a response. Please try again.');
+          } else if (error.status === 503) {
+            this.aiReplyError.set('Vexa is temporarily unavailable. Please try again.');
+          } else {
+            this.aiReplyError.set('Unable to get a response from Vexa. Please try again.');
+          }
         }
       }
     });
@@ -222,7 +247,6 @@ export class DashboardComponent implements OnInit {
 
     if (conversationIndex !== -1) {
       const conversation = conversations[conversationIndex];
-      // Create a new array with the conversation moved to the top
       const updatedConversations = [
         conversation,
         ...conversations.slice(0, conversationIndex),
@@ -233,7 +257,6 @@ export class DashboardComponent implements OnInit {
   }
 
   createNewConversation(): void {
-    // Prevent duplicate requests
     if (this.creatingConversation()) {
       return;
     }
@@ -243,19 +266,13 @@ export class DashboardComponent implements OnInit {
     this.conversationService.createConversation(null).subscribe({
       next: (response) => {
         const newConversation = response.data;
-        // Insert the new conversation at the top of the sidebar
         this.conversations.set([newConversation, ...this.conversations()]);
-        // Select the new conversation
         this.selectConversation(newConversation);
-        // Clear any previous conversation error
         this.conversationsError.set(false);
-        // Reset creating state
         this.creatingConversation.set(false);
       },
       error: (error) => {
         this.creatingConversation.set(false);
-        // Show error message
-        console.error('Failed to create conversation:', error);
       }
     });
   }
@@ -279,7 +296,6 @@ export class DashboardComponent implements OnInit {
     this.authService.logout().subscribe({
       next: () => {
         this.isLoggingOut.set(false);
-        // Navigate to login with replaceUrl to prevent back button from returning to dashboard
         this.router.navigate(['/login'], { replaceUrl: true });
       },
       error: () => {
