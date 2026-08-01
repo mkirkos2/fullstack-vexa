@@ -17,7 +17,6 @@ class GroqAiProvider implements AiProvider
 {
     public function generateReply(array $messages): AiResponse
     {
-        // Validate configuration
         $apiKey = config('ai.providers.groq.api_key');
         $baseUrl = config('ai.providers.groq.base_url');
         $model = config('ai.providers.groq.model');
@@ -34,7 +33,6 @@ class GroqAiProvider implements AiProvider
             throw new AiConfigurationException('Groq model is not configured.');
         }
 
-        // Validate and normalize input messages
         $normalizedMessages = [];
         foreach ($messages as $message) {
             if (! isset($message['role']) || ! isset($message['content'])) {
@@ -56,26 +54,26 @@ class GroqAiProvider implements AiProvider
             ];
         }
 
-        // Prepare the request
         $payload = [
             'model' => $model,
             'messages' => $normalizedMessages,
-            'temperature' => config('ai.temperature'),
-            'max_tokens' => config('ai.max_tokens'),
+            'temperature' => (float) config('ai.temperature'),
+            'max_tokens' => (int) config('ai.max_tokens'),
         ];
 
-        // Make the HTTP request
-        $response = Http::asJson()
-            ->withHeader('Authorization', "Bearer {$apiKey}")
-            ->timeout(config('ai.timeout'))
-            ->connectTimeout(config('ai.connect_timeout'))
-            ->post("{$baseUrl}/chat/completions", $payload);
+        try {
+            $response = Http::asJson()
+                ->withHeader('Authorization', "Bearer {$apiKey}")
+                ->timeout(config('ai.timeout'))
+                ->connectTimeout(config('ai.connect_timeout'))
+                ->post("{$baseUrl}/chat/completions", $payload);
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            throw new AiConnectionException('Connection error with Groq API: ' . $e->getMessage());
+        }
 
-        // Handle response
         if ($response->failed()) {
             $statusCode = $response->status();
 
-            // Map specific HTTP status codes to exceptions
             switch ($statusCode) {
                 case 401:
                 case 403:
@@ -92,15 +90,12 @@ class GroqAiProvider implements AiProvider
             }
         }
 
-        // Check for network-level issues
         if ($response->clientError() || $response->serverError()) {
             throw new AiConnectionException('Connection error with Groq API.');
         }
 
-        // Parse the response
         $responseData = $response->json();
 
-        // Validate response structure
         if (! isset($responseData['choices'][0]['message']['content'])) {
             throw new AiMalformedResponseException('Malformed response from Groq API: missing message content.');
         }

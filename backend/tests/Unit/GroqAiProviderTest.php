@@ -611,3 +611,49 @@ it('does not expose secret values in exception messages', function () {
 
     Http::assertSentCount(1);
 });
+
+it('casts temperature and max_tokens to correct types', function () {
+    Http::fake([
+        '*' => Http::response([
+            'id' => 'chatcmpl-123',
+            'object' => 'chat.completion',
+            'created' => 1234567890,
+            'model' => 'llama-3.1-8b-instant',
+            'choices' => [
+                [
+                    'index' => 0,
+                    'message' => [
+                        'role' => 'assistant',
+                        'content' => 'Hello!',
+                    ],
+                    'finish_reason' => 'stop',
+                ],
+            ],
+            'usage' => [
+                'prompt_tokens' => 5,
+                'completion_tokens' => 10,
+                'total_tokens' => 15,
+            ],
+        ], 200),
+    ]);
+
+    // Mock config values that might have incorrect types
+    config()->set('ai.temperature', '0.7'); // String instead of float
+    config()->set('ai.max_tokens', '1024'); // String instead of int
+
+    $provider = app(AiProvider::class);
+    $messages = [
+        ['role' => 'user', 'content' => 'Hi'],
+    ];
+
+    $response = $provider->generateReply($messages);
+
+    expect($response)->toBeInstanceOf(AiResponse::class);
+
+    Http::assertSent(function ($request) {
+        return is_float($request['temperature']) &&
+            is_int($request['max_tokens']) &&
+            $request['temperature'] === 0.7 &&
+            $request['max_tokens'] === 1024;
+    });
+});
